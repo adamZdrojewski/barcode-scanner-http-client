@@ -1,14 +1,25 @@
-use std::{path::Path, process};
+use std::{env, path::Path, process};
 
+use dotenv::dotenv;
 use evdev::{Device, EventType, KeyCode};
 
-const SCANNER_DEVICE_PATH: &str = "/dev/input/by-id/usb-ﾩSymbol_Technologies__Inc__2002_Symbol_Bar_Code_Scanner_S_N:E341D2CD621FA445B3463D034B66084B_Rev:NBRMIAAU3-event-kbd";
 const MAX_BARCODE_LENGTH: usize = 64;
 
 fn main() {
+    dotenv().ok();
+
+    // Get SCANNER_DEVICE_PATH environment variable
+    let scanner_device_path = match env::var("SCANNER_DEVICE_PATH") {
+        Ok(scanner_device_path) => scanner_device_path,
+        Err(..) => {
+            eprint!("❌ Missing required environment variable 'SCANNER_DEVICE_PATH'");
+            process::exit(1);
+        }
+    };
+
     // Open scanner device
-    println!("ℹ️ Attempting to open scanner device: {}", SCANNER_DEVICE_PATH);
-    let mut scanner_device = match Device::open(Path::new(SCANNER_DEVICE_PATH)) {
+    println!("ℹ️ Attempting to open scanner device: {}", scanner_device_path);
+    let mut scanner_device = match Device::open(Path::new(&scanner_device_path)) {
         Ok(scanner_device) => scanner_device,
         Err(err) => {
             eprint!("❌ Error opening the scanner: {}", err);
@@ -18,7 +29,7 @@ fn main() {
     println!("✅ Scanner opened successfully");
 
     // Grab scanner device (prevents it from being used with other programs)
-    println!("ℹ️ Attempting grab scanner device: {}", SCANNER_DEVICE_PATH);
+    println!("ℹ️ Attempting grab scanner device: {}", scanner_device_path);
     match scanner_device.grab() {
         Ok(_) => (),
         Err(err) => {
@@ -99,5 +110,15 @@ fn keycode_to_char(code: u16) -> Option<char> {
 }
 
 fn handle_scan(barcode_value: String) {
+    // Get HTTP_SERVER_ADDRESS environment variable
+    let http_server_address = match env::var("HTTP_SERVER_ADDRESS") {
+        Ok(http_server_address) => http_server_address,
+        Err(..) => {
+            eprint!("❌ Missing required environment variable 'HTTP_SERVER_ADDRESS'");
+            process::exit(1);
+        }
+    };
+
     println!("Handeling barcode... {}", barcode_value);
+    println!("Sending data to: {}", http_server_address)
 }
