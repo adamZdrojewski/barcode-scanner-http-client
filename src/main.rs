@@ -2,17 +2,19 @@ use std::{env, path::Path, process};
 
 use dotenv::dotenv;
 use evdev::{Device, EventType, KeyCode};
+use reqwest::StatusCode;
 
 const MAX_BARCODE_LENGTH: usize = 64;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     dotenv().ok();
 
     // Get SCANNER_DEVICE_PATH environment variable
     let scanner_device_path = match env::var("SCANNER_DEVICE_PATH") {
         Ok(scanner_device_path) => scanner_device_path,
         Err(..) => {
-            eprint!("❌ Missing required environment variable 'SCANNER_DEVICE_PATH'");
+            eprintln!("❌ Missing required environment variable 'SCANNER_DEVICE_PATH'");
             process::exit(1);
         }
     };
@@ -22,7 +24,7 @@ fn main() {
     let mut scanner_device = match Device::open(Path::new(&scanner_device_path)) {
         Ok(scanner_device) => scanner_device,
         Err(err) => {
-            eprint!("❌ Error opening the scanner: {}", err);
+            eprintln!("❌ Error opening the scanner: {}", err);
             process::exit(1);
         }
     };
@@ -33,7 +35,7 @@ fn main() {
     match scanner_device.grab() {
         Ok(_) => (),
         Err(err) => {
-            eprint!("❌ Error grabbing the scanner: {}", err);
+            eprintln!("❌ Error grabbing the scanner: {}", err);
             process::exit(1);
         }
     }
@@ -48,7 +50,7 @@ fn main() {
         let scanner_device_events = match scanner_device.fetch_events() {
             Ok(events) => events,
             Err(err) => {
-                eprint!("❌ Error reading events from scanner device: {}", err);
+                eprintln!("❌ Error reading events from scanner device: {}", err);
                 process::exit(1);
             }
         };
@@ -70,7 +72,7 @@ fn main() {
             // Check if enter key was pressed
             if event.code() == KeyCode::KEY_ENTER.0 {
                 // Enter key was pressed - handle scan event and reset current_barcode variable
-                handle_scan(current_barcode.clone());
+                handle_scan(current_barcode.clone()).await;
                 current_barcode.clear();
             } else {
                 // Not enter key - get char from keycode and add it to the current_barcode variable
@@ -109,16 +111,35 @@ fn keycode_to_char(code: u16) -> Option<char> {
     }
 }
 
-fn handle_scan(barcode_value: String) {
+async fn handle_scan(barcode_value: String) {
+    // Log scanned barcode to console
+    println!("ℹ️ Scanned barcode: {}", barcode_value);
+
     // Get HTTP_SERVER_ADDRESS environment variable
     let http_server_address = match env::var("HTTP_SERVER_ADDRESS") {
         Ok(http_server_address) => http_server_address,
         Err(..) => {
-            eprint!("❌ Missing required environment variable 'HTTP_SERVER_ADDRESS'");
+            eprintln!("❌ Missing required environment variable 'HTTP_SERVER_ADDRESS'");
             process::exit(1);
         }
     };
 
-    println!("Handeling barcode... {}", barcode_value);
-    println!("Sending data to: {}", http_server_address)
+    // Send barcode to HTTP server
+    let response = reqwest::get(format!("{}?barcode={}", http_server_address, barcode_value)).await;
+
+    // Check if request was successful
+    match response {
+        Ok(response) => {
+            if response.status() == StatusCode::OK {
+                println!("✅ Barcode successfully sent to HTTP server");
+            } else {
+                eprintln!("❌ An error occurred while sending the barcode to the HTTP server");
+                return;
+            }
+        },
+        Err(..) => {
+            eprintln!("❌ An error occurred while sending the barcode to the HTTP server");
+            return;
+        }
+    }
 }
