@@ -6,15 +6,17 @@ Lightweight Docker container for forwarding USB barcode scanner input to your HT
 The easiest way to install **barcode-scanner-http-client** is with a docker-compose file.  Below is an example, make sure to replace the placeholder values with your actual ones.
 ```yaml
 services:
-    barcode-scanner-http-client:
-        image: adamzdrojewski/barcode-scanner-http-client
-        container_name: barcode-scanner-http-client
-        restart: unless-stopped
-        devices:
-            - <scanner-device-path>:/dev/input/scanner
-        environment:
-            SCANNER_DEVICE_PATH: "/dev/input/scanner"
-            HTTP_SERVER_ADDRESS: "<http-api-endpoint>"
+  barcode-scanner-http-client:
+    image: adamzdrojewski/barcode-scanner-http-client
+    container_name: barcode-scanner-http-client
+    restart: unless-stopped
+    network_mode: host
+    devices:
+      - <scanner-device-path>:/dev/input/scanner
+    environment:
+      SCANNER_DEVICE_PATH: "/dev/input/scanner"
+      HTTP_SERVER_ADDRESS: "<http-api-endpoint>"
+
 ```
 You will need to replace `<scanner-device-path>` with the actual path to your scanner input device.  It should be mounted somewhere in the `/dev/input` directory.  You will need to replace `<scanner-device-path>` with the full path of the device, example: `/dev/input/event1`.  Just make sure to replace the number 1 with whatever number your scanner is mounted to.
 
