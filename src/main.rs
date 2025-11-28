@@ -136,12 +136,12 @@ async fn handle_scan(barcode_value: String) {
             if response.status() == StatusCode::OK {
                 println!("✅ Barcode successfully sent to HTTP server");
             } else {
-                eprintln!("❌ An error occurred while sending the barcode to the HTTP server");
+                eprintln!("❌ An error occurred while sending the barcode to the HTTP server: {:?}", response);
                 return;
             }
         },
-        Err(..) => {
-            eprintln!("❌ An error occurred while sending the barcode to the HTTP server");
+        Err(err) => {
+            eprintln!("❌ An error occurred while sending the barcode to the HTTP server: {}", err);
             return;
         }
     }
