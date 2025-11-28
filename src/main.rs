@@ -41,6 +41,9 @@ async fn main() {
     }
     println!("✅ Scanner grabbed successfully.");
 
+    // Everything is ready to roll!
+    println!("✅ All ready!  Listening for scanner input...");
+
     // Working barcode variable to store keys as they are entered by the scanner
     let mut current_barcode = String::with_capacity(MAX_BARCODE_LENGTH);
 
